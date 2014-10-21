@@ -1,0 +1,43 @@
+- states = {running: :success, pending: :warning}
+
+%div.container
+  - if @error
+    %div.alert.alert-error
+      = @error
+
+  - @regions.each do |region|
+    %div.container
+      %div.col-md-12.text-center
+        %div.panel.panel-default
+          %div.panel-heading
+            %h3.panel-title
+              %a{href: "https://console.aws.amazon.com/ec2/autoscaling/home?region=#{region[:name]}#AutoScalingGroups:view=details;id=#{params[:group]}", target: '_blank'}
+                = region[:name]
+      - region[:instances].each do |instance|
+        %div.col-md-6
+          %ul.list-group
+            - state = states.fetch(instance[:details].state.name.to_sym, :danger)
+            %li{class: [ 'list-group-item', "list-group-item-#{state}" ]}
+              %span.lead
+                %a{href: "https://console.aws.amazon.com/ec2/v2/home?region=#{region[:name]}#Instances:search=#{instance[:details].instance_id}", target: '_blank'}
+                  = instance[:details].public_ip_address
+              %span.pull-right
+                %span= instance[:details].placement.availability_zone
+                %span= instance[:details].instance_type
+                %span= instance[:details].state.name
+                %span= instance[:details].launch_time
+            - instance[:procs].each do |proc|
+              %li.list-group-item
+                - proc_state = states.fetch(proc['statename'].downcase.to_sym, :danger)
+                %span{class: [ 'label', "label-#{proc_state}" ]}= proc['statename'].downcase
+                %span= proc['name']
+                %span= proc['description']
+                %span.pull-right
+                  %a{href: "http://#{instance[:details].public_ip_address}:8000/tail.html?processname=#{proc['name']}", target: '_blank'}
+                    %span.label.label-default tail
+                  %a{href: "http://#{instance[:details].public_ip_address}:8000/logtail/#{proc['name']}", target: '_blank'}
+                    %span.label.label-default tail -f
+                  %a{href: "http://#{instance[:details].public_ip_address}:8000/?processname=#{proc['name']}&action=restart", target: '_blank'}
+                    %span.glyphicon.glyphicon-repeat
+                  %a{href: "http://#{instance[:details].public_ip_address}:8000/?processname=#{proc['name']}&action=stop", target: '_blank'}
+                    %span.glyphicon.glyphicon-remove-circle
