@@ -26,3 +26,24 @@ export SUPERVISORD_PASSWORD=s3cr3t
 
 bundle exec foreman start
 ```
+
+## supervisord setup
+
+This application uses supervisord's RPC interface over HTTP to retrieve
+process information, so you will need to ensure it is enabled in your
+supervisord config:
+
+```
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[inet_http_server]
+port=9001
+username=foo
+password=s3cr3t
+
+...
+```
+
+Also ensure that your chosen HTTP port is accessible through the
+instance firewalls and security groups.
