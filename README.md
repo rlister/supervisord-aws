@@ -42,8 +42,28 @@ port=9001
 username=foo
 password=s3cr3t
 
-...
+... rest of your config here ...
 ```
 
 Also ensure that your chosen HTTP port is accessible through the
 instance firewalls and security groups.
+
+## Docker
+
+This project comes with a Dockerfile, should that method of deployment
+float your boat. Build your own image, or download from docker
+registry:
+
+```sh
+cat <<EOF > env
+AWS_ACCESS_KEY_ID=SEE7OOVAIROOYAEDOHWO
+AWS_SECRET_ACCESS_KEY=PHaeBeIZ1aiYahbeighuv9aegiushahs/Ij/eighieJoo8
+REGIONS=us-east-1 us-west-1
+SUPERVISORD_PORT=9001
+SUPERVISORD_USER=foo
+SUPERVISORD_PASSWORD=s3cr3t
+EOF
+
+docker pull rlister/supervisord-aws
+docker run -d --env-file=env -p 9292:9292 rlister/supervisord-aws
+```
