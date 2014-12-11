@@ -1,6 +1,8 @@
 require 'aws-sdk-core'
 require 'xmlrpc/client'
 require 'sinatra'
+require 'net/http'
+require 'json'
 
 ## set the following environment variables:
 ##   AWS_ACCESS_KEY_ID
@@ -9,6 +11,7 @@ require 'sinatra'
 ##   SUPERVISORD_PORT
 ##   SUPERVISORD_USER
 ##   SUPERVISORD_PASSWORD
+##   CADVISOR_PORT (default: 8080)
 
 REGIONS = ENV['REGIONS'].split(/\s+/)
 
@@ -27,8 +30,21 @@ def supervisord_procs(ip)
     user:     ENV['SUPERVISORD_USER'],
     password: ENV['SUPERVISORD_PASSWORD']
   ).call('supervisor.getAllProcessInfo')
-rescue
+rescue => e
+  logger.warn "#{ip} supervisord: #{e.message}"
   []
+end
+
+def cadvisor_containers(ip)
+  port = ENV.fetch('CADVISOR_PORT', 8080)
+  http = Net::HTTP.new(ip, port)
+  http.read_timeout = 5
+  JSON.parse(http.get('/api/v1.2/docker/').body).map do |_, v|
+    v.fetch('aliases', [])
+  end
+rescue => e
+  logger.warn "#{ip} cadvisor: #{e.message}"
+  [ ]
 end
 
 get '/' do
@@ -55,7 +71,12 @@ get '/:group' do
       instances = []
     else
       instances = ec2(region).describe_instances(instance_ids: instance_ids).reservations.map(&:instances).flatten.map do |instance| #get instance details
-        { details: instance, procs: supervisord_procs(instance.public_dns_name) } #get supervisord procs
+        host = instance.public_dns_name
+        {
+          details:    instance,
+          procs:      supervisord_procs(host),
+          containers: cadvisor_containers(host),
+        }
       end
     end
 

@@ -14,6 +14,7 @@
               %a{href: "https://console.aws.amazon.com/ec2/autoscaling/home?region=#{region[:name]}#AutoScalingGroups:view=details;id=#{params[:group]}", target: '_blank'}
                 = region[:name]
       - region[:instances].each do |instance|
+        - ip = instance[:details].public_ip_address
         %div.col-md-6
           %ul.list-group
             - state = states.fetch(instance[:details].state.name.to_sym, :danger)
@@ -26,6 +27,10 @@
                 %span= instance[:details].instance_type
                 %span= instance[:details].state.name
                 %span= instance[:details].launch_time
+              %span
+                - instance[:containers].each do |container|
+                  %a{href: "http://#{ip}:#{ENV.fetch('CADVISOR_PORT', 8080)}/docker/#{container[1]}", target: '_blank'}
+                    %span{class: [ 'label', 'label-default' ]}= container[0]
             - instance[:procs].each do |proc|
               %li.list-group-item
                 - proc_state = states.fetch(proc['statename'].downcase.to_sym, :danger)
